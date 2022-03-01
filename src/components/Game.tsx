@@ -23,6 +23,13 @@ import { useMode } from "../hooks/useMode";
 import { useCountry } from "../hooks/useCountry";
 import { Twemoji } from "@teuteuf/react-emoji-render";
 
+// START ADDED IMPORTS
+import DateAdapter from "@mui/lab/AdapterDateFns";
+import { LocalizationProvider, DatePicker } from "@mui/lab";
+import { TextField } from "@mui/material";
+// END ADDED IMPORTS
+
+
 function getDayString() {
   return DateTime.now().toFormat("yyyy-MM-dd");
 }
@@ -39,18 +46,36 @@ export function Game({ settingsData }: GameProps) {
 
   const countryInputRef = useRef<HTMLInputElement>(null);
 
-  const [country, randomAngle, imageScale] = useCountry(dayString);
+  // START MODIFIED CODE 1
+  // Let's you select new date
+  const [selDate, setSelectedDate] = useState<string | null>(dayString);
+
+  // This is a very hacky way to get the date on the right format. TODO: fix.
+  // 1) It takes the string from the DatePicker 
+  // 2) creates a new Date element 
+  // 3) converts it to a ISO string
+  // 4) Removes the time from the ISO string
+  const dateToFormattedIsoString = selDate && new Date(selDate).toISOString().split('T')[0];
+
+  // If the selectedDate/ Formated Date is not null: use this, else use today
+  const selectedDate = selDate && dateToFormattedIsoString ? dateToFormattedIsoString : dayString;
+  // END MODIFIED CODE 1
+
+  const [country, randomAngle, imageScale] = useCountry(selectedDate);
 
   const [currentGuess, setCurrentGuess] = useState("");
-  const [guesses, addGuess] = useGuesses(dayString);
+
+  console.log(selectedDate);
+
+  const [guesses, addGuess] = useGuesses(selectedDate);
   const [hideImageMode, setHideImageMode] = useMode(
     "hideImageMode",
-    dayString,
+    selectedDate,
     settingsData.noImageMode
   );
   const [rotationMode, setRotationMode] = useMode(
     "rotationMode",
-    dayString,
+    selectedDate,
     settingsData.rotationMode
   );
 
@@ -159,7 +184,7 @@ export function Game({ settingsData }: GameProps) {
           <>
             <Share
               guesses={guesses}
-              dayString={dayString}
+              dayString={selectedDate}
               settingsData={settingsData}
               hideImageMode={hideImageMode}
               rotationMode={rotationMode}
@@ -202,6 +227,19 @@ export function Game({ settingsData }: GameProps) {
           </form>
         )}
       </div>
+      {/* START MODIFIED CODE 2 - ADDS A MUI DATEPICKER */}
+      <LocalizationProvider dateAdapter={DateAdapter}>
+        <DatePicker
+          inputFormat="yyyy-MM-dd"
+          label="Select date"
+          value={selectedDate}
+          onChange={(newValue) => {
+            setSelectedDate(newValue);
+          }}
+          renderInput={(params) => <TextField {...params} />}
+        />
+      </LocalizationProvider>
+      {/* END MODIFIED CODE 2 */}
     </div>
   );
 }
